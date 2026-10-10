@@ -1,0 +1,15 @@
+[project]
+name = "gpu-led-rtx5080"
+version = "0.1.0"
+description = "CoolerControl integration for ZOTAC SPECTRA GPU LEDs"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

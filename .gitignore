@@ -1,16 +1,9 @@
 __pycache__/
-*.pyc
-.venv/
-.ruff_cache/
+*.py[cod]
 .pytest_cache/
-build/
-dist/
-*.log
-
-# Local secrets
-config.local.json
-credentials.json
-*.token
-
-# Soft-deleted files
-.deleted/
+.ruff_cache/
+.venv/
+venv/
+tools/spectra-write-test/spectra-controller
+tools/spectra-write-test/spectra-write-test
+tools/nvrm-i2c-probe/nvrm-i2c-probe

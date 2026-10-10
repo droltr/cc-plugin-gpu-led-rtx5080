@@ -6,6 +6,11 @@ coverage target), type hints, ruff (100-char lines), soft-delete into `.deleted/
 
 ## Project-specific
 
+- **Non-negotiable verification rule:** ASLA VARSAYIMDA BULUNMA. Do not state that
+  any behavior, setting, source, hardware capability, or UI action works until it
+  has been verified with authoritative documentation, a reproducible test, or
+  direct runtime evidence. Clearly label anything that remains unverified.
+
 - Python modules use snake_case (importable); scripts and docs use kebab-case.
 - Lighting ownership: board, fans and DRAM belong to `cc-plugin-thermal-rgb`; the
   keyboard belongs to `cc-plugin-game-rgb`. Never write a device you do not own.

@@ -1,0 +1,15 @@
+{
+  "coolercontrol_token": "",
+  "gpu_name": "NVIDIA GeForce RTX 5080",
+  "temp_name": "GPU Temp",
+  "driver_version": "615.71.09",
+  "write_leds": true,
+  "mode": "static",
+  "color_source": "temperature",
+  "fixed_color": "#2060ff",
+  "poll_interval_s": 2.0,
+  "smoothing_tau_s": 3.0,
+  "brightness_pct": 75.0,
+  "speed": 235,
+  "effect_brightness": 210
+}
