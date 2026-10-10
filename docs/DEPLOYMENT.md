@@ -36,10 +36,9 @@ sudo SPECTRA_CONTROLLER_BIN=/path/to/verified/spectra-controller \
   SPECTRA_CONTROLLER_DRIVER_VERSION=615.71.09 bash install.sh
 ```
 
-This mode skips compilation. The script compares the binary SHA-256 and driver version with the
-supplied metadata and records the source commit in the deployment. The source commit remains an
-operator-supplied provenance assertion because a compiled binary does not contain its source Git
-commit.
+This mode skips compilation. The script compares the binary SHA-256 with the supplied digest and
+compares the embedded source commit and driver version from `--build-info` with the supplied
+values. A binary without embedded build metadata is rejected.
 
 ## Verify
 

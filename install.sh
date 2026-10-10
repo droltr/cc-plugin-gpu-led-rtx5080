@@ -63,6 +63,20 @@ else
         echo "controller binary SHA-256 mismatch" >&2
         exit 1
     }
+    build_info=$($controller_bin --build-info) || {
+        echo "controller binary does not provide build metadata" >&2
+        exit 1
+    }
+    actual_source_commit=$(printf '%s\n' "$build_info" | sed -n 's/^source_commit=//p')
+    actual_driver_version=$(printf '%s\n' "$build_info" | sed -n 's/^driver_version=//p')
+    test "$actual_source_commit" = "$SPECTRA_CONTROLLER_SOURCE_COMMIT" || {
+        echo "controller source commit metadata mismatch" >&2
+        exit 1
+    }
+    test "$actual_driver_version" = "$SPECTRA_CONTROLLER_DRIVER_VERSION" || {
+        echo "controller driver metadata mismatch" >&2
+        exit 1
+    }
 fi
 
 rollback() {
@@ -87,7 +101,10 @@ if [ -n "$controller_bin" ]; then
     test -x "$controller_bin" || { echo "SPECTRA_CONTROLLER_BIN is not executable" >&2; exit 1; }
     cp "$controller_bin" "$stage/spectra-controller"
 else
-    make -C "$src/tools/spectra-write-test" clean spectra-controller NVIDIA_SRC="$SPECTRA_NVIDIA_SRC"
+    make -C "$src/tools/spectra-write-test" clean spectra-controller \
+        NVIDIA_SRC="$SPECTRA_NVIDIA_SRC" \
+        SPECTRA_SOURCE_COMMIT="$actual_commit" \
+        SPECTRA_DRIVER_VERSION="$config_driver_version"
     cp "$src/tools/spectra-write-test/spectra-controller" "$stage/"
 fi
 find "$stage/lib" -name __pycache__ -prune -exec rm -rf {} +

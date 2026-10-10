@@ -91,6 +91,16 @@ Build the controller against the exact installed NVIDIA driver headers:
 make -C tools/spectra-write-test NVIDIA_SRC=/path/to/open-gpu-kernel-modules spectra-controller
 ```
 
+The reproducible build must pass the exact NVIDIA source commit and driver version so the binary
+contains verifiable build metadata:
+
+```sh
+make -C tools/spectra-write-test clean spectra-controller \
+  NVIDIA_SRC=/path/to/open-gpu-kernel-modules \
+  SPECTRA_SOURCE_COMMIT=61dcc93 SPECTRA_DRIVER_VERSION=615.71.09
+./tools/spectra-write-test/spectra-controller --build-info
+```
+
 The controller source is `tools/spectra-write-test/spectra-write-test.c`. Its headers come from
 NVIDIA's official `open-gpu-kernel-modules` source, recorded for the installed 615.71.09 driver
 as tag `615.71.09`, commit `61dcc93`, in `docs/research-report.md`. The binary uses NVIDIA RM

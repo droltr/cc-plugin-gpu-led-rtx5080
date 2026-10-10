@@ -62,6 +62,13 @@
 #define ID_LEN       10
 #define EXPECT_ID    "N765E-1001"
 
+#ifndef SPECTRA_SOURCE_COMMIT
+#define SPECTRA_SOURCE_COMMIT "unknown"
+#endif
+#ifndef SPECTRA_DRIVER_VERSION
+#define SPECTRA_DRIVER_VERSION "unknown"
+#endif
+
 /* reset, on, mode, R, G, B, on-time, off-time, preset; the rest is zero */
 static const NvU8 PKT_TEST[9]    = { 0x00, 0x01, 0x00, 0x00, 0x00, 0xFF, 0x2D, 0x0A, 0x08 };
 static const NvU8 PKT_RESTORE[9] = { 0x00, 0x01, 0x01, 0x11, 0xFF, 0x28, 0x14, 0x0A, 0x08 };
@@ -368,6 +375,11 @@ int main(int argc, char **argv)
     NvU8 st[PKT_LEN];
     int rc = 1;
 
+    if (argc == 2 && !strcmp(argv[1], "--build-info")) {
+        printf("source_commit=%s\ndriver_version=%s\n", SPECTRA_SOURCE_COMMIT,
+               SPECTRA_DRIVER_VERSION);
+        return 0;
+    }
     if (argc < 3 || (strcmp(argv[2], "set") && argc != 3) ||
         (!strcmp(argv[2], "set") && (argc < 7 || argc > 9)) ||
         (strcmp(argv[2], "status") && strcmp(argv[2], "test") &&
