@@ -60,5 +60,8 @@ available before testing a new write.
 ## Status recorded 2026-10-10
 
 The stable runtime, repository cleanup, technical documentation, local validation, and GitHub
-Actions CI are complete. The four items above remain open and are intentionally deferred until
-the next work session.
+Actions CI are complete. The repository is public at
+`https://github.com/droltr/cc-plugin-gpu-led-rtx5080`. The deployed CoolerControl service is
+active with zero restarts, and the runtime is producing temperature-driven RGB updates on the
+verified Bazzite test environment. The four items above remain open and are intentionally deferred
+until the next work session.
