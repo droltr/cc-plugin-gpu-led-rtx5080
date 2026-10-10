@@ -16,23 +16,30 @@ structures and is not rebuilt from an arbitrary header version.
 ## Install or upgrade
 
 ```sh
-sudo SPECTRA_NVIDIA_SRC=/path/to/open-gpu-kernel-modules bash install.sh
+sudo SPECTRA_NVIDIA_SRC=/path/to/open-gpu-kernel-modules \
+  SPECTRA_NVIDIA_COMMIT=<verified-commit> bash install.sh
 sudo systemctl restart coolercontrold
 ```
 
-The installer builds the controller, stages the complete plugin, copies the runtime package,
-preserves the CoolerControl token from the configured token file, and atomically replaces the
-target directory. The production install does not include the experimental UI.
+The installer builds the controller only from the exact Git commit and driver tag supplied by the
+operator, stages the complete plugin, writes controller provenance metadata, preserves the
+CoolerControl token from the configured token file, and retains the previous deployment in a
+timestamped backup. The production install does not include the experimental UI.
 
 When a previously built controller binary has been independently verified against the current
 source and driver, it may be supplied explicitly:
 
 ```sh
-sudo SPECTRA_CONTROLLER_BIN=/path/to/verified/spectra-controller bash install.sh
+sudo SPECTRA_CONTROLLER_BIN=/path/to/verified/spectra-controller \
+  SPECTRA_CONTROLLER_SHA256=<verified-sha256> \
+  SPECTRA_CONTROLLER_SOURCE_COMMIT=<verified-source-commit> \
+  SPECTRA_CONTROLLER_DRIVER_VERSION=615.71.09 bash install.sh
 ```
 
-This mode skips compilation. Do not use it for a binary whose source, driver compatibility, or
-controller checks have not been verified.
+This mode skips compilation. The script compares the binary SHA-256 and driver version with the
+supplied metadata and records the source commit in the deployment. The source commit remains an
+operator-supplied provenance assertion because a compiled binary does not contain its source Git
+commit.
 
 ## Verify
 
@@ -43,11 +50,13 @@ journalctl -u cc-plugin-gpu-led-rtx5080.service -n 50 --no-pager
 ```
 
 Verify that the deployed directory contains `lib/gpu_led/runtime.py`, `run.sh`,
-`config.json`, and `spectra-controller`. Confirm the configured GPU model and `GPU Temp` sensor
-before enabling writes.
+`config.json`, `spectra-controller`, and `controller-build.txt`. Confirm the configured GPU model
+and `GPU Temp` sensor before enabling writes. Compare the recorded controller hash with the
+verified artifact before restarting the service.
 
 ## Rollback
 
-Stop the plugin service, restore the previous reviewed plugin directory, and restart
-CoolerControl. Preserve the previous configuration and controller binary before replacing a
-deployment. A known-good LED restore packet is documented in `tools/spectra-write-test/README.md`.
+Stop the plugin service, move the retained timestamped backup back to the deployment path, and
+restart CoolerControl. Delete a backup only after the new deployment has passed file, service,
+log, and hardware checks. A known-good LED restore packet is documented in
+`tools/spectra-write-test/README.md`.

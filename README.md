@@ -51,9 +51,10 @@ the RGB command channels to 75% while preserving continuous Static output. This 
 a software output-level limit, not a claim that the LED current or electrical power
 is exactly 75%.
 
-### Effect settings
+### Experimental effect settings
 
-The plugin UI exposes the verified 0x4A ranges in this order:
+The following ranges are documented for the experimental UI on `test/ui-settings`. They are not
+available in the production runtime on `main`, and their save path is not accepted:
 
 | Effect | Mode | Colour source | Speed | Hardware effect brightness |
 |---|---:|---|---:|---:|
@@ -71,7 +72,7 @@ percentage. The UI's random source uses host-generated colours for colour-capabl
 modes and the controller's own random/cycle effect for the other modes.
 
 The settings page is experimental and remains on the `test/ui-settings` branch. Its save path
-has not been verified and it is not part of the stable runtime acceptance criteria. The stable
+has not been verified and it is not part of the production runtime acceptance criteria. The stable
 runtime and its settings contract are kept separate: `gpu_led/` contains the temperature and
 LED controller path, `config.json` and `gpu_led/config.py` contain configuration parsing, and
 `ui/index.html` is the deferred test interface.

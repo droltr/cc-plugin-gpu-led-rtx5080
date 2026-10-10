@@ -6,6 +6,7 @@ target=/var/lib/coolercontrol/plugins/gpu-led-rtx5080
 stage="$target.new"
 owner_home=$(getent passwd "${SUDO_USER:-root}" | cut -d: -f6)
 include_ui=${INSTALL_UI:-0}
+backup=""
 
 case "$include_ui" in
     0|1) ;;
@@ -14,12 +15,64 @@ esac
 
 test "$(id -u)" -eq 0 || { echo "run with sudo" >&2; exit 1; }
 controller_bin=${SPECTRA_CONTROLLER_BIN:-}
+config_driver_version=$(CONFIG_PATH="$src/config.json" python3 -c 'import json, os; print(json.load(open(os.environ["CONFIG_PATH"], encoding="utf-8"))["driver_version"])')
 if [ -z "$controller_bin" ]; then
     test -n "${SPECTRA_NVIDIA_SRC:-}" || {
         echo "set SPECTRA_NVIDIA_SRC to the matching open-gpu-kernel-modules checkout" >&2
         exit 1
     }
+    test -n "${SPECTRA_NVIDIA_COMMIT:-}" || {
+        echo "set SPECTRA_NVIDIA_COMMIT to the verified NVIDIA source commit" >&2
+        exit 1
+    }
+    actual_commit=$(git -C "$SPECTRA_NVIDIA_SRC" rev-parse HEAD 2>/dev/null) || {
+        echo "SPECTRA_NVIDIA_SRC is not a Git checkout" >&2
+        exit 1
+    }
+    test "$actual_commit" = "$SPECTRA_NVIDIA_COMMIT" || {
+        echo "NVIDIA source commit mismatch: expected $SPECTRA_NVIDIA_COMMIT, got $actual_commit" >&2
+        exit 1
+    }
+    git -C "$SPECTRA_NVIDIA_SRC" tag --points-at HEAD | grep -Fxq "$config_driver_version" || {
+        echo "NVIDIA source checkout is not tagged $config_driver_version" >&2
+        exit 1
+    }
+else
+    test -n "${SPECTRA_CONTROLLER_SHA256:-}" || {
+        echo "set SPECTRA_CONTROLLER_SHA256 for binary deployment" >&2
+        exit 1
+    }
+    test -n "${SPECTRA_CONTROLLER_SOURCE_COMMIT:-}" || {
+        echo "set SPECTRA_CONTROLLER_SOURCE_COMMIT for binary deployment" >&2
+        exit 1
+    }
+    [[ "$SPECTRA_CONTROLLER_SOURCE_COMMIT" =~ ^[0-9a-fA-F]{7,40}$ ]] || {
+        echo "SPECTRA_CONTROLLER_SOURCE_COMMIT must be a Git commit hash" >&2
+        exit 1
+    }
+    test "${SPECTRA_CONTROLLER_DRIVER_VERSION:-}" = "$config_driver_version" || {
+        echo "controller driver version does not match config.json" >&2
+        exit 1
+    }
+    [[ "$SPECTRA_CONTROLLER_SHA256" =~ ^[0-9a-fA-F]{64}$ ]] || {
+        echo "SPECTRA_CONTROLLER_SHA256 must be a SHA-256 digest" >&2
+        exit 1
+    }
+    actual_hash=$(sha256sum "$controller_bin" | awk '{print $1}')
+    test "$actual_hash" = "$SPECTRA_CONTROLLER_SHA256" || {
+        echo "controller binary SHA-256 mismatch" >&2
+        exit 1
+    }
 fi
+
+rollback() {
+    rm -rf "$stage"
+    if [ -n "$backup" ] && [ -e "$backup" ]; then
+        rm -rf "$target"
+        mv "$backup" "$target"
+    fi
+}
+trap rollback ERR
 
 rm -rf "$stage"
 mkdir -p "$stage/lib"
@@ -38,6 +91,13 @@ else
     cp "$src/tools/spectra-write-test/spectra-controller" "$stage/"
 fi
 find "$stage/lib" -name __pycache__ -prune -exec rm -rf {} +
+
+source_commit=${SPECTRA_CONTROLLER_SOURCE_COMMIT:-${SPECTRA_NVIDIA_COMMIT:-unavailable}}
+cat > "$stage/controller-build.txt" <<EOF
+driver_version=$config_driver_version
+source_commit=$source_commit
+sha256=$(sha256sum "$stage/spectra-controller" | awk '{print $1}')
+EOF
 
 /usr/bin/python3 -m venv "$stage/venv"
 "$stage/venv/bin/pip" install --quiet --disable-pip-version-check -r "$stage/requirements.txt"
@@ -62,10 +122,17 @@ PY
 fi
 chmod 0600 "$stage/config.json"
 
-rm -rf "$target"
+if [ -e "$target" ]; then
+    backup="$target.backup.$(date -u +%Y%m%dT%H%M%SZ).$$"
+    mv "$target" "$backup"
+fi
 mv "$stage" "$target"
 if command -v selinuxenabled >/dev/null && selinuxenabled; then
     chcon -t bin_t "$target/run.sh" "$target/spectra-controller"
 fi
+trap - ERR
 echo "Installed to $target"
+if [ -n "$backup" ]; then
+    echo "Previous deployment retained at: $backup"
+fi
 echo "Restart with: sudo systemctl restart coolercontrold"
