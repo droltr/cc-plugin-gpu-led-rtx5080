@@ -16,9 +16,9 @@ structures and is not rebuilt from an arbitrary header version.
 ## Install or upgrade
 
 ```sh
-sudo SPECTRA_NVIDIA_SRC=/path/to/open-gpu-kernel-modules \
+run0 env SPECTRA_NVIDIA_SRC=/path/to/open-gpu-kernel-modules \
   SPECTRA_NVIDIA_COMMIT=<verified-commit> bash install.sh
-sudo systemctl restart coolercontrold
+run0 systemctl restart coolercontrold
 ```
 
 The installer builds the controller only from the exact Git commit and driver tag supplied by the
@@ -30,7 +30,7 @@ When a previously built controller binary has been independently verified agains
 source and driver, it may be supplied explicitly:
 
 ```sh
-sudo SPECTRA_CONTROLLER_BIN=/path/to/verified/spectra-controller \
+run0 env SPECTRA_CONTROLLER_BIN=/path/to/verified/spectra-controller \
   SPECTRA_CONTROLLER_SHA256=<verified-sha256> \
   SPECTRA_CONTROLLER_SOURCE_COMMIT=<verified-source-commit> \
   SPECTRA_CONTROLLER_DRIVER_VERSION=615.71.09 bash install.sh

@@ -13,7 +13,7 @@ case "$include_ui" in
     *) echo "INSTALL_UI must be 0 or 1" >&2; exit 1 ;;
 esac
 
-test "$(id -u)" -eq 0 || { echo "run with sudo" >&2; exit 1; }
+test "$(id -u)" -eq 0 || { echo "run with Bazzite's run0 (or another root launcher)" >&2; exit 1; }
 controller_bin=${SPECTRA_CONTROLLER_BIN:-}
 config_driver_version=$(CONFIG_PATH="$src/config.json" python3 -c 'import json, os; print(json.load(open(os.environ["CONFIG_PATH"], encoding="utf-8"))["driver_version"])')
 if [ -z "$controller_bin" ]; then
@@ -152,4 +152,4 @@ echo "Installed to $target"
 if [ -n "$backup" ]; then
     echo "Previous deployment retained at: $backup"
 fi
-echo "Restart with: sudo systemctl restart coolercontrold"
+echo "Restart with: run0 systemctl restart coolercontrold"

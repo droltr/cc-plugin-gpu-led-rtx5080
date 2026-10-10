@@ -119,8 +119,8 @@ The plugin launcher expects that binary as `spectra-controller` beside `run.sh`,
 Install the complete plugin with the matching header checkout:
 
 ```sh
-sudo SPECTRA_NVIDIA_SRC=/path/to/open-gpu-kernel-modules bash install.sh
-sudo systemctl restart coolercontrold
+run0 env SPECTRA_NVIDIA_SRC=/path/to/open-gpu-kernel-modules bash install.sh
+run0 systemctl restart coolercontrold
 ```
 
 The stable install omits the deferred settings page. The experimental UI branch can include it
