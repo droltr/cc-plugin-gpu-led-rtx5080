@@ -1,4 +1,4 @@
-# gpu-rgb-rtx5080
+# cc-plugin-gpu-led-rtx5080
 
 **Status: LED control verified from Linux (first write test passed, 2026-10-10).**
 Summary: [docs/research-report.md](docs/research-report.md) · step log:
@@ -30,7 +30,8 @@ assumptions are marked `⚠️ UNVERIFIED` / `⚠️ ASSUMPTION`.
 - The target card (subsystem `0x1765`) is not in that list. Its LED controller is a
   ZOTAC SPECTRA MCU at **0x4A on NVIDIA RM port 1**, ID **`N765E-1001`**, which only answers
   at **10 kHz**. Linux `/dev/i2c-*` NVIDIA adapters run at a fixed 100 kHz, so it is
-  reached through `/dev/nvidiactl` instead (`tools/nvrm-i2c-probe`, read-only). A write
+  reached through `/dev/nvidiactl` instead. The read-only probe that established this is
+  retained in the local research archive, outside the runtime repository. A write
   test (`tools/spectra-write-test`) set steady blue and restored breathing green.
   Source: probe on 2026-10-10; details in [docs/research-report.md](docs/research-report.md).
 - Tag `release_candidate_1.0rc2` has only `ZotacTuringGPUController` and
@@ -138,9 +139,7 @@ CoolerControl status, the NVIDIA device exposes `GPU Temp` and the AMD device ex
 |---|---|
 | `docs/research-report.md` | consolidated findings, environment, sources, mistakes |
 | `docs/probe-log.md` | chronological log of every probe |
-| `tools/nvrm-i2c-probe/` | read-only 10 kHz identification probe (RM API) |
 | `tools/spectra-write-test/` | guarded controller status/write utility |
-| `tools/analysis/` | helpers used for FireStorm and ABI analysis (no hardware access) |
 | `docs/DEPLOYMENT.md` | installation, upgrade, rollback, and runtime verification |
 | `docs/TESTING.md` | automated and hardware validation boundaries |
 | `THIRD_PARTY_NOTICES.md` | dependency and source attributions |

@@ -1,4 +1,5 @@
 __pycache__/
+.local/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
@@ -6,4 +7,3 @@ __pycache__/
 venv/
 tools/spectra-write-test/spectra-controller
 tools/spectra-write-test/spectra-write-test
-tools/nvrm-i2c-probe/nvrm-i2c-probe

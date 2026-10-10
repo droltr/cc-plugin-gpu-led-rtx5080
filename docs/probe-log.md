@@ -173,7 +173,7 @@ control (one field changed) was detected.
 > Based on: FireStorm compares 0x4A IDs with `N765E`; the ZOTAC brochure for the sibling
 > SKU mentions `N765`; the RTX 5070 SOLID (0x1764) uses the 0x4A protocol per MR !3380.
 
-## 2026-10-10 — RM API probe at 10 kHz (`tools/nvrm-i2c-probe`, controlled test)
+## 2026-10-10 — RM API probe at 10 kHz (controlled test; source retained in the local archive)
 
 Pre-run: OpenRGB server held no NVIDIA device; driver 615.71.09; GPU 48 °C, 0 % fan,
 20.9 W, P8. All three transactions were reads on RM port 1 (`bWrite = NV_FALSE`).
@@ -209,7 +209,7 @@ preset 0x08. A controlled observation showed green breathing output, which match
 
 ## 2026-10-10 — FireStorm 0x4A call sites (re-run of the decoder with speed column)
 
-`tools/analysis/firestorm_i2c_calls.py` (63 call sites, identical to the first run):
+The archived FireStorm call-site analysis (63 call sites, identical to the first run):
 
 | Function | Kind | Register | Length | Speed |
 |---|---|---|---|---|

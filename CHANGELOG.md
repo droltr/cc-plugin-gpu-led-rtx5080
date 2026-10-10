@@ -21,12 +21,12 @@ All notable changes to this project are documented here. The format follows
   abrupt colour jumps and redundant static controller writes.
 - Project plan and technical validation records (`docs/PLAN.md`, `docs/TESTING.md`,
   `docs/DEPLOYMENT.md`).
-- `tools/nvrm-i2c-probe`: read-only RM API probe at 10 kHz; identified the LED
+- Historical read-only RM API probing at 10 kHz identified the LED
   controller `N765E-1001` at 0x4A on RM port 1.
 - `tools/spectra-write-test`: first LED write test with two fixed packets (static
   blue, restore to breathing green) and read-back; verified on hardware.
-- `tools/analysis`: FireStorm call-site decoder, NvAPI struct layout check, RM ABI
-  comparison, speed-flag dump.
+- Historical FireStorm call-site, NvAPI layout, and RM ABI analysis results are retained in the
+  research documentation; the source helpers are kept in the local archive.
 - `docs/research-report.md`, `docs/probe-log.md`, and `THIRD_PARTY_NOTICES.md`.
 
 ### Removed

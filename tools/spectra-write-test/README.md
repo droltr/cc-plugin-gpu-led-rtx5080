@@ -1,7 +1,7 @@
 # spectra-write-test
 
 First write test for the ZOTAC SPECTRA LED controller (0x4A, RM port 1, 10 kHz) of the
-RTX 5080 SOLID CORE OC. Build like `tools/nvrm-i2c-probe` (`make NVIDIA_SRC=…`).
+RTX 5080 SOLID CORE OC. Build with the Makefile in this directory (`make NVIDIA_SRC=…`).
 
 Build the controller with the exact source commit and driver version. The resulting binary
 exposes `--build-info`; the installer compares this embedded metadata before deployment.

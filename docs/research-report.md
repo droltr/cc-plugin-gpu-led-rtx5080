@@ -58,7 +58,7 @@ output at that moment (2026-10-10). This confirms the status layout for this car
 - I²C is done with `NvAPI_I2CRead` (`0x2FDE12C5`) and `NvAPI_I2CWrite` (`0xE812EB07`)
   (`nvapi_interface.h` lines 90–91).
 - Request struct `NV_I2C_INFO_V3`, version `0x3002C`; i386 offsets checked with
-  `_Static_assert` (`tools/analysis/nv-i2c-info-v3-layout-check.c`). Fixed values:
+  `_Static_assert` from the archived analysis helper. Fixed values:
   displayMask 1, bIsDDCPort 1 (required by the NvAPI docs), portId 1, bIsPortIdSet 1,
   i2cSpeed `0xFFFF` (deprecated marker).
 - Addresses used: 0x49, 0x4A, 0x4B (i2cDevAddress is documented as shifted left by one).
@@ -68,7 +68,7 @@ output at that moment (2026-10-10). This confirms the status layout for this car
   `N822E`.
 - 0x4A call sites: two 32-byte reads and one **32-byte write** of register 0x5A at
   10 kHz (function `0x430880`).
-- 63 I²C call sites in total; full list reproducible with `tools/analysis/firestorm_i2c_calls.py`.
+- 63 I²C call sites in total; the archived analysis output is retained as research evidence.
 
 ### 4.2 Linux driver (Bazzite) — from NVIDIA source 615.71.09
 
@@ -131,12 +131,8 @@ back matched, the physical observation showed breathing green.
 
 | Path | Purpose | Status |
 |---|---|---|
-| `tools/nvrm-i2c-probe/` | read-only RM API probe at 10 kHz, built against NVIDIA headers | used for the successful identification |
+| Historical RM probe and analysis helpers | retained in the local research archive and excluded from the runtime repository | results are recorded in this report and the probe log |
 | `tools/spectra-write-test/` | `status` / `test` / `restore` with two fixed packets and read-back | first write verified (blue steady, restore to green breathe) |
-| `tools/analysis/firestorm_i2c_calls.py` | lists FireStorm I²C call sites from objdump output | verified (63 sites, same output before and after cleanup) |
-| `tools/analysis/nv-i2c-info-v3-layout-check.c` | i386 layout check of `NV_I2C_INFO_V3` | passes; negative control rejected |
-| `tools/analysis/nv402c-speed-flags.c` | prints speed flag values from official macros | 10 kHz = `0x8`, 100 kHz = `0x0` |
-| `tools/analysis/abi-compare/` | compares MR !3380 ABI definitions with official headers | 26/26 identical; negative control detected |
 
 ## 6. Evidence controls
 

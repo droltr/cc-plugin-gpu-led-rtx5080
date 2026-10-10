@@ -2,7 +2,7 @@
 id = "gpu-led-rtx5080"
 type = "integration"
 version = "0.1.0"
-url = "https://github.com/droltr/gpu-rgb-rtx5080"
+url = "https://github.com/droltr/cc-plugin-gpu-led-rtx5080"
 description = "Drives the ZOTAC RTX 5080 SPECTRA LEDs from GPU temperature."
 executable = "/var/lib/coolercontrol/plugins/gpu-led-rtx5080/run.sh"
 privileged = true
