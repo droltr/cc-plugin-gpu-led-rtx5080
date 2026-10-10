@@ -97,7 +97,8 @@ contains verifiable build metadata:
 ```sh
 make -C tools/spectra-write-test clean spectra-controller \
   NVIDIA_SRC=/path/to/open-gpu-kernel-modules \
-  SPECTRA_SOURCE_COMMIT=61dcc93 SPECTRA_DRIVER_VERSION=615.71.09
+  SPECTRA_SOURCE_COMMIT=61dcc93722ecb418bb5f2e00923f05b4b8051dd1 \
+  SPECTRA_DRIVER_VERSION=615.71.09
 ./tools/spectra-write-test/spectra-controller --build-info
 ```
 
