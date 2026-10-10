@@ -13,10 +13,13 @@ case "$include_ui" in
 esac
 
 test "$(id -u)" -eq 0 || { echo "run with sudo" >&2; exit 1; }
-test -n "${SPECTRA_NVIDIA_SRC:-}" || {
-    echo "set SPECTRA_NVIDIA_SRC to the matching open-gpu-kernel-modules checkout" >&2
-    exit 1
-}
+controller_bin=${SPECTRA_CONTROLLER_BIN:-}
+if [ -z "$controller_bin" ]; then
+    test -n "${SPECTRA_NVIDIA_SRC:-}" || {
+        echo "set SPECTRA_NVIDIA_SRC to the matching open-gpu-kernel-modules checkout" >&2
+        exit 1
+    }
+fi
 
 rm -rf "$stage"
 mkdir -p "$stage/lib"
@@ -27,8 +30,13 @@ if [ "$include_ui" -eq 1 ]; then
     mkdir -p "$stage/ui"
     cp "$src/ui/index.html" "$stage/ui/index.html"
 fi
-make -C "$src/tools/spectra-write-test" clean spectra-controller NVIDIA_SRC="$SPECTRA_NVIDIA_SRC"
-cp "$src/tools/spectra-write-test/spectra-controller" "$stage/"
+if [ -n "$controller_bin" ]; then
+    test -x "$controller_bin" || { echo "SPECTRA_CONTROLLER_BIN is not executable" >&2; exit 1; }
+    cp "$controller_bin" "$stage/spectra-controller"
+else
+    make -C "$src/tools/spectra-write-test" clean spectra-controller NVIDIA_SRC="$SPECTRA_NVIDIA_SRC"
+    cp "$src/tools/spectra-write-test/spectra-controller" "$stage/"
+fi
 find "$stage/lib" -name __pycache__ -prune -exec rm -rf {} +
 
 /usr/bin/python3 -m venv "$stage/venv"

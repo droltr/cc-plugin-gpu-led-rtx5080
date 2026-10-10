@@ -24,6 +24,16 @@ The installer builds the controller, stages the complete plugin, copies the runt
 preserves the CoolerControl token from the configured token file, and atomically replaces the
 target directory. The production install does not include the experimental UI.
 
+When a previously built controller binary has been independently verified against the current
+source and driver, it may be supplied explicitly:
+
+```sh
+sudo SPECTRA_CONTROLLER_BIN=/path/to/verified/spectra-controller bash install.sh
+```
+
+This mode skips compilation. Do not use it for a binary whose source, driver compatibility, or
+controller checks have not been verified.
+
 ## Verify
 
 ```sh
