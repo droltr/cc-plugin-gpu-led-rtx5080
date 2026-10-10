@@ -1,53 +1,48 @@
-# Plan — gpu-rgb-rtx5080
+# Project plan
 
-Date: 2026-10-10. Status: core runtime implemented; validation and source review pending.
-**Highest hardware risk of the RGB projects:** a wrong I²C write to a GPU can misconfigure on-board controllers.
-Every write step needs explicit approval from the owner immediately beforehand.
+## Scope
 
-## Steps
+Provide a CoolerControl integration that reads the NVIDIA GPU temperature and drives the ZOTAC
+SPECTRA LEDs through the verified NVIDIA RM transaction path. The production runtime is separate
+from `cc-plugin-thermal-rgb` and does not depend on OpenRGB.
 
-1. **Identify the model:** `nvidia-smi -q` (board part number), box or label, and
-   ZOTAC's spec page. Record whether it has ARGB and which zones it has.
-2. **Read-only probe:** find the NVIDIA I²C bus that has a device at `0x4B` and read
-   the same register the OpenRGB detector reads (`0x10`), without writing.
-   `ZotacBlackwellGPUControllerDetect.cpp` checks only that this read succeeds
-   (`result >= 0`); it does not compare a value. Done 2026-10-10, see
-   [probe-log.md](probe-log.md): no response.
-3. **Local OpenRGB build** (distrobox, release_1.0 or master) with one added
-   `REGISTER_I2C_PCI_DETECTOR` line for subsystem `0x1765`. Run detection only.
-4. **First write, with the owner watching:** one static colour through OpenRGB;
-   verify, then restore. Stop on any anomaly.
-5. If it works: propose the PCI ID upstream (OpenRGB, Codeberg) with the probe evidence,
-   and keep the local patch on a branch of our OpenRGB fork meanwhile.
-6. Integration: the GPU becomes a zone for `cc-plugin-thermal-rgb` (GPU temperature
-   is a natural source) and optionally for `cc-plugin-game-rgb`.
+The settings page is experimental and remains isolated on `test/ui-settings` until its save path
+and runtime propagation are independently verified.
 
-## Dependencies
+## Implemented
 
-- The OpenRGB build and fork decision from `cc-plugin-thermal-rgb` phase 0.
-- `i2c-dev` is loaded and the buses carry `uaccess` ACLs (from `openrgb-udev-rules`). Already true.
+- Identified the SPECTRA controller at `0x4A`, NVIDIA RM port 1, 10 kHz.
+- Added guarded read-only identification and status tools.
+- Verified static and breathing packets with read-back and a restore packet.
+- Added GPU temperature selection that excludes the unrelated AMD GPU.
+- Added thermal colour mapping, EMA smoothing, 75% software RGB output scaling, and static LED
+  runtime updates.
+- Separated runtime, configuration parsing, and the experimental UI branch.
+- Added reproducible standard-library automated tests and deployment documentation.
 
-## Status (2026-10-10)
+## Acceptance boundary
 
-- Step 1 done: SOLID CORE OC, `ZT-B50800J2-10P`, SPECTRA RGB (ZOTAC brochure).
-- Step 2 done, with a change of method: the controller is at 0x4A (not 0x4B), answers
-  only at 10 kHz, and is read through `/dev/nvidiactl` (RM port 1), not `/dev/i2c-*`.
-  ID `N765E-1001`. See `research-report.md`.
-- Step 3 changes: OpenRGB's existing ZOTAC Blackwell controller (0x4B) does not apply.
-  The candidate is OpenRGB MR !3380 (0x4A protocol + RM API backend, open, not merged).
-- Core plugin implementation exists: GPU temperature is the source, the thermal-rgb colour
-  sequence is reused at 40/56/72/88 °C, and static GPU LEDs are enabled in the deployed
-  configuration.
-- The settings page is deferred on `test/ui-settings` and is excluded from stable acceptance.
-- The source is being separated into the temperature/LED runtime and the configuration/UI layer.
-- The controller binary source and exact build inputs still require a reproducible review before
-  any rebuild is treated as necessary.
+Accepted evidence covers controller identification, packet read-back, static output, breathing
+output, GPU sensor selection, and live temperature-driven RGB updates.
 
-## Current evidence boundary
+The following remain separate validation items:
 
-- Verified: controller reachability, device identification, packet read-back, static output,
-  restore output, GPU temperature selection, and live temperature-driven RGB updates.
-- Not yet accepted: the settings page save path, a stable release, a fresh controller rebuild,
-  and the repository's final automated test run.
-- Modes 2–5 have accepted packet values and status read-back, but their visual effect names and
-  timing/brightness semantics remain separate evidence questions. See `docs/research-report.md`.
+- A fresh controller rebuild from an exact `open-gpu-kernel-modules` checkout matching the
+  installed NVIDIA driver.
+- Deployment verification after installing the current reviewed source.
+- Visual timing and brightness semantics for effect modes beyond the directly observed modes.
+- The experimental settings-page save path.
+
+## Hardware safety
+
+Every physical write requires explicit authorization immediately before execution. The controller
+must pass its device identity, GPU count, device minor, strict driver-version, and controller-ID
+checks. Read-only status and read-back are required, and the known restore packet must remain
+available before testing a new write.
+
+## Next work
+
+1. Install the reviewed source and verify the deployed file set and service logs.
+2. Rebuild the controller only after the exact NVIDIA source checkout and headers are verified.
+3. Perform the remaining controlled hardware checks.
+4. Develop and validate the settings page on its test branch.

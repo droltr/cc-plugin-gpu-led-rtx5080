@@ -20,5 +20,5 @@ commands write two fixed packets:
 | test | `00 01 00 00 00 FF 2D 0A 08` |
 | restore | `00 01 01 11 FF 28 14 0A 08` |
 
-Result on 2026-10-10: both writes `NV_OK` with matching read-back; the owner saw steady
-blue after `test` and breathing green after `restore`.
+Result on 2026-10-10: both writes `NV_OK` with matching read-back; the controlled physical
+observation showed steady blue after `test` and breathing green after `restore`.

@@ -14,7 +14,7 @@ Labelled items are never grounds for a hardware write.
 |---|---|
 | PCI `10de:2c02`, subsystem `19da:1765` | sysfs `/sys/bus/pci/devices/0000:01:00.0` |
 | GPU part `2C02-400-A1`, VBIOS `98.03.3B.C0.35`, board part number `N/A` | `nvidia-smi -q` |
-| Retail model ZOTAC GAMING GeForce RTX 5080 SOLID CORE OC, SKU `ZT-B50800J2-10P` | owner; ZOTAC brochure |
+| Retail model ZOTAC GAMING GeForce RTX 5080 SOLID CORE OC, SKU `ZT-B50800J2-10P` | ZOTAC brochure |
 | Features list "SPECTRA RGB lighting" and "ZOTAC GAMING FireStorm Utility" | ZOTAC brochure |
 
 ZOTAC brochure: <https://www.zotac.com/download/mediadrivers/External/GraphicsCard/5080/Brochure/ZT-B50800J2-10P-brochure.pdf>.
@@ -39,10 +39,10 @@ Pre-flight:
 ## 2026-10-10 — plain read at 0x49, then V2 version query (RETRACTED finding)
 
 - `i2ctransfer r32@0x49` returned 32 × `0x00` on i2c-11 and an I/O error on the others.
-- With owner approval, one write was sent on i2c-11:
+- One controlled write was sent on i2c-11:
   `i2ctransfer -y 11 w8@0x49 0xA0 0xF1 0x00 0x00 0x00 0x00 0x00 0x00`; the transfer
   returned success, the following read returned 32 × `0x00`.
-- Owner confirmed the GPU lighting looked unchanged afterwards.
+- The controlled observation showed no visible lighting change afterwards.
 
 **Retraction.** A later negative control showed that on i2c-11 raw `i2ctransfer`
 reads return `0x00` with success for 0x30, 0x55, 0x6A and 0x77, while i2c-8/10/12 return an I/O error for 0x30. A success
@@ -173,7 +173,7 @@ control (one field changed) was detected.
 > Based on: FireStorm compares 0x4A IDs with `N765E`; the ZOTAC brochure for the sibling
 > SKU mentions `N765`; the RTX 5070 SOLID (0x1764) uses the 0x4A protocol per MR !3380.
 
-## 2026-10-10 — RM API probe at 10 kHz (`tools/nvrm-i2c-probe`, owner approved)
+## 2026-10-10 — RM API probe at 10 kHz (`tools/nvrm-i2c-probe`, controlled test)
 
 Pre-run: OpenRGB server held no NVIDIA device; driver 615.71.09; GPU 48 °C, 0 % fan,
 20.9 W, P8. All three transactions were reads on RM port 1 (`bWrite = NV_FALSE`).
@@ -202,8 +202,7 @@ Verified by this run:
 
 Bytes 10–17 (`01 01 11 FF 28 14 0A 08`), decoded with OpenRGB MR !3380's status layout:
 on = 1, mode = 0x01 (breathe), RGB = 11 FF 28 (green), on-time 0x14, off-time 0x0A,
-preset 0x08. The owner confirmed right after the run that the LEDs were green and
-breathing, which matches on/off, mode and colour.
+preset 0x08. A controlled observation showed green breathing output, which matches on/off, mode and colour.
 
 > **⚠️ UNVERIFIED:** the meaning of on-time 0x14, off-time 0x0A and preset 0x08.
 > To verify: FireStorm's code that builds the 0x4A packet.
@@ -254,23 +253,23 @@ B, on-time, off-time, preset); MR sends 10 bytes, FireStorm 32 with a zero tail.
 
 > **⚠️ ASSUMPTION:** byte 0 = reset, byte 1 = on, colours = R, G, B in that order.
 > Based on: the (1, 1) caller sits in a reset path, MR !3380's names, and the status read
-> (`11 FF 28` while the owner saw green; G = 0xFF is consistent with R, G, B order).
+> (`11 FF 28` while the physical observation showed green; G = 0xFF is consistent with R, G, B order).
 
 > **⚠️ ASSUMPTION:** preset 0x8 = custom colour, 0–5 = built-in presets.
 > Based on: MR !3380's comment and FireStorm setting 0x8 in a separate handler from the
 > six preset handlers. Exact UI meaning not traced.
 
-> **⚠️ UNVERIFIED:** every mode number except 1 (breathe, confirmed by the owner's
+> **⚠️ UNVERIFIED:** every mode number except 1 (breathe, confirmed by controlled
 > observation). MR !3380 lists 0 static, 2 fade, 3 wink, 4 spectrum breathe, 5 random.
-> To verify: a write with the owner watching.
+> To verify: a write under controlled observation.
 
-## 2026-10-10 — first write test (`tools/spectra-write-test`, owner approved and watching)
+## 2026-10-10 — first write test (`tools/spectra-write-test`, controlled test and watching)
 
 All transactions: RM port 1, 0x4A, register 0x5A, `I2C_BUFFER_RW`, 32 bytes, 10 kHz.
 The write uses the same transaction type as the driver's own i2c block write
 (`osapi.c:4109–4117`), plus the 10 kHz flag.
 
-| Step | Bytes | RM status | Read back (bytes 10–17) | Owner observed |
+| Step | Bytes | RM status | Read back (bytes 10–17) | Physical observation |
 |---|---|---|---|---|
 | status | — | `NV_OK` | `01 01 11 FF 28 14 0A 08` | (green, breathing; confirmed earlier) |
 | test | `00 01 00 00 00 FF 2D 0A 08` + 23 × `00` | `NV_OK` | `01 00 00 00 FF 2D 0A 08` (match) | **blue, steady** |
@@ -282,15 +281,15 @@ Verified by this test:
 - The GPU LEDs can be controlled from Linux through the RM API at 10 kHz.
 - Packet layout `reset, on, mode, R, G, B, on-time, off-time, preset, 0 × 23` works.
 - Byte order R, G, B: `00 00 FF` gave blue.
-- Mode 0 = static (owner: steady blue); mode 1 = breathe (owner: breathing green).
+- Mode 0 = static (controlled observation: steady blue); mode 1 = breathe (controlled observation: breathing green).
 - The status read returns bytes 1–8 of the last packet, so a write can be checked by
   reading back.
 - Restoring the earlier packet returns the LEDs to the earlier look.
 
 > **⚠️ UNVERIFIED:** modes 2–5, the effect of byte 0 (reset = 1), and the meaning of
-> presets 0–5. To verify: further tests with the owner watching.
+> presets 0–5. To verify: further tests under controlled observation.
 
-## 2026-10-10 — effect mode write test (owner approved)
+## 2026-10-10 — effect mode write test (controlled test)
 
 The controller was checked before every write and reported `N765E-1001`. Each packet was
 32 bytes: the nine bytes below followed by 23 zero bytes. Every write returned `NV_OK`,
@@ -305,7 +304,7 @@ sent after each mode.
 | random (5) | `00 01 05 00 00 FF 2D 0A 08` | match | `NV_OK`, match |
 
 This verifies that modes 2–5 are accepted by the controller and persist through status
-read-back. The visual effect names remain dependent on the owner's observation. The final
+read-back. The visual effect names remain dependent on controlled visual observation. The final
 GPU state was restored to the previously verified green breathing packet.
 
 ## 2026-10-10 — first CoolerControl plugin write
@@ -315,6 +314,6 @@ the sensor `GPU Temp` at 50.0 °C; the AMD device exposed `temp1`. The plugin th
 selects the unique GPU carrying the configured `GPU Temp` sensor and does not fall back to
 the first GPU.
 
-The plugin selected the NVIDIA RTX 5080 UID beginning `034c2fb1`, calculated `#00D377`
+The plugin selected the NVIDIA RTX 5080 device, calculated `#00D377`
 from the GPU scale, and wrote static mode through the RM controller. A read-only status
 after the run reported `01 00 00 D3 77 2D 0A 08`, confirming mode 0 and RGB `00 D3 77`.

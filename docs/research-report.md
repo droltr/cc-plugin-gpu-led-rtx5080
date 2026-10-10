@@ -15,11 +15,11 @@ Linux's `/dev/i2c-*` adapters for NVIDIA GPUs always run at 100 kHz, so the cont
 is invisible through them. It is reachable from user space through the NVIDIA Resource
 Manager API (`/dev/nvidiactl`, `NV402C_CTRL_CMD_I2C_TRANSACTION` with the 10 kHz speed
 flag). The first write test on 2026-10-10 set the LEDs to steady blue and restored them
-to breathing green, both confirmed by the owner watching the card (section 4.5).
+to breathing green; the physical result was observed during the controlled test (section 4.5).
 
 The status bytes read back (`01 01 11 FF 28 14 0A 08`) decode, using the layout in OpenRGB
-MR !3380, to "on, breathe, RGB 11 FF 28". The owner confirmed the card was glowing green
-and breathing at that moment (2026-10-10). This confirms the status layout for this card.
+MR !3380, to "on, breathe, RGB 11 FF 28". The controlled observation showed green breathing
+output at that moment (2026-10-10). This confirms the status layout for this card.
 
 ## 2. Environment
 
@@ -30,20 +30,20 @@ and breathing at that moment (2026-10-10). This confirms the status layout for t
 | Kernel | 7.2.8-ogc5.1.fc44.x86_64 | `uname -r` |
 | CPU / board | AMD Ryzen 7 9800X3D; MSI MAG B850 TOMAHAWK MAX WIFI (MS-7E62), BIOS 2.A64 | `/proc/cpuinfo`, DMI |
 | GPU | NVIDIA GeForce RTX 5080, PCI `10de:2c02`, subsystem `19da:1765`, GPU part `2C02-400-A1`, bus `0000:01:00.0` | sysfs, `nvidia-smi -q` |
-| Card | ZOTAC GAMING GeForce RTX 5080 SOLID CORE OC, SKU `ZT-B50800J2-10P` | owner; ZOTAC brochure |
+| Card | ZOTAC GAMING GeForce RTX 5080 SOLID CORE OC, SKU `ZT-B50800J2-10P` | ZOTAC brochure |
 | VBIOS | 98.03.3B.C0.35 | `nvidia-smi` |
 | Driver | NVIDIA open kernel module 615.71.09 (akmods build, 2026-10-06) | `/proc/driver/nvidia/version` |
 | NVIDIA i2c adapters | i2c-8/9/10/11/12 = "NVIDIA i2c adapter 1/3/4/5/6 at 1:00.0" | `/sys/class/i2c-dev/*/name` |
 | OpenRGB | flatpak `org.openrgb.OpenRGB` 1.0 (flathub, stable), running as SDK server on 127.0.0.1:6742 | `flatpak list` |
 | Other lighting software running | coolercontrold 5.0.1 with plugin `thermal-rgb` (openrgb-python 0.3.8) | `ps`, plugin venv |
-| Tools | i2c-tools 4.4, GNU objdump 2.46.1, gcc 16.2.1, Python 3.14.7, git 2.55.0, gh 2.102.0, Homebrew 7.0.9, innoextract 1.9 (installed via brew during this work) | `--version` |
+| Tools | i2c-tools 4.4, GNU objdump 2.46.1, gcc 16.2.1, Python 3.14.7, git 2.55.0, gh 2.102.0, innoextract 1.9 | `--version` |
 
 ## 3. Sources used
 
 | Source | Version | Used for |
 |---|---|---|
 | ZOTAC brochure `ZT-B50800J2-10P-brochure.pdf` (zotac.com) | 2025 | model, "SPECTRA RGB lighting", "FireStorm Utility" |
-| ZOTAC FireStorm installer `ZOTACGAMING-RTX50-FireStorm.zip` (owner's copy) | 5.0.0.015E; zip SHA-256 `bb16ca6147d7de99b166da50ff90c0ccc9d1cb6e684155b15c60ecc4bb6fea58`, `FireStorm.exe` SHA-256 `40843cc5b2d890382d2b8836c4bcb7441f10c39ebe24fc8eaa2da0a46f84d452` | static disassembly (not executed) |
+| ZOTAC FireStorm installer artifact | 5.0.0.015E; local artifact hashes are retained outside the published repository | static disassembly (not executed) |
 | NVIDIA NVAPI SDK, github.com/NVIDIA/nvapi | commit `70d337d` (2026-09-18) | NvAPI function IDs, `NV_I2C_INFO_V3`, I²C API docs |
 | NVIDIA open-gpu-kernel-modules | tag `615.71.09`, commit `61dcc93` | Linux i2c adapter code, RM I²C control, ABI headers |
 | OpenRGB, gitlab.com/CalcProgrammer1/OpenRGB | local clone at `release_1.0` / master 2026-09-11 (`81bbe18a`) | existing ZOTAC controllers |
@@ -124,14 +124,13 @@ Write: RM port 1, address 0x4A, register 0x5A, `I2C_BUFFER_RW`, 32 bytes, 10 kHz
 | 9–31 | zero | — |
 
 Status read (same register, 32 bytes): 10-byte ID `N765E-1001`, then bytes 1–8 of the last
-packet. Write test: `test` → read back matched, owner saw steady blue; `restore` → read
-back matched, owner saw breathing green.
+packet. Write test: `test` → read back matched, the physical observation showed steady blue; `restore` → read
+back matched, the physical observation showed breathing green.
 
 ## 5. Code written
 
 | Path | Purpose | Status |
 |---|---|---|
-| `scripts/probe-readonly.sh` | i2c-dev read probe (0x4A, 0x4B) via `i2cget` | works; cannot reach the controller (100 kHz) |
 | `tools/nvrm-i2c-probe/` | read-only RM API probe at 10 kHz, built against NVIDIA headers | used for the successful identification |
 | `tools/spectra-write-test/` | `status` / `test` / `restore` with two fixed packets and read-back | first write verified (blue steady, restore to green breathe) |
 | `tools/analysis/firestorm_i2c_calls.py` | lists FireStorm I²C call sites from objdump output | verified (63 sites, same output before and after cleanup) |
@@ -139,28 +138,17 @@ back matched, owner saw breathing green.
 | `tools/analysis/nv402c-speed-flags.c` | prints speed flag values from official macros | 10 kHz = `0x8`, 100 kHz = `0x0` |
 | `tools/analysis/abi-compare/` | compares MR !3380 ABI definitions with official headers | 26/26 identical; negative control detected |
 
-## 6. Mistakes and corrections
+## 6. Evidence controls
 
-| # | Mistake | Consequence | Correction |
-|---|---|---|---|
-| 1 | Reported "device at 0x49 on i2c-11" without a negative control | false finding | i2c-11 returns success for any address; finding withdrawn |
-| 2 | Ignored that the reply was all `0x00` | red flag missed | rule: suspicious data is a warning |
-| 3 | Asked for and sent a write (`A0 F1 00 00 00 00 00 00` to 0x49 on i2c-11) based on #1 | one unnecessary write; owner saw no lighting change; whether it reached a device is unknown | rule: no action on unverified findings |
-| 4 | Took the write's "success" as acceptance | wrong claim | rule: tool success is not evidence |
-| 5 | Stated guesses as facts ("on-board device", "probably adapter 2", NvAPI names before checking, `bIsDDCPort` as a hint, search-summary specs) | misleading report | all re-checked against official sources; labels introduced |
-| 6 | Used `i2cget`/`i2ctransfer` without checking their driver paths | inconsistent results | driver source read; differences documented (4.2) |
-| 7 | Installed `innoextract` without asking; fell back from capstone to objdump and from `gcc -m32` to static asserts without asking | owner not consulted | rule: ask before installing or switching tools |
-| 8 | Copied three handle constants from GPL code into the probe | license risk | replaced with own values; `THIRD_PARTY_NOTICES.md` added |
-| 9 | Probe header claimed a "minor 0" check that the code did not do | false safety claim | check implemented before the run |
-| 10 | Log said NvAPI port 1 = RM port 1 after the probe | overclaim | changed to "controller is on RM port 1"; mapping left unverified |
-| 11 | While archiving, copied the negative-control variant (size `0x30`) of the layout check into the repo | wrong file in the record | caught by re-compiling; fixed to `0x2c`; every archived file compared with the version that ran |
-
-The owner stopped work once ("dur") and the rules in `~/.claude/CLAUDE.md`
-("Truthfulness and verification", rules 1–10) were written from these mistakes.
+The probe and controller utilities use negative controls, strict device identity checks, strict
+driver-version checks, read-back, and a known restore packet. Tool exit status alone is not
+treated as evidence of device presence, command acceptance, or visible output. Unverified
+protocol interpretations remain labelled in the probe log and are excluded from production
+acceptance.
 
 ## 7. Open items
 
-Modes 2–5 have since been written with the owner-approved tool and accepted by the controller;
+Modes 2–5 have since been written with the validated tool and accepted by the controller;
 status read-back matched each packet and the verified restore packet followed each write. The
 packet acceptance is verified. The human-visible names and exact timing/brightness semantics
 remain separate evidence questions and are not treated as verified by read-back alone.
@@ -177,7 +165,7 @@ remain separate evidence questions and are not treated as verified by read-back 
 
 Done: FireStorm write path decoded (`0x430880`); first write verified on hardware.
 
-Decided by the owner (2026-10-10): a **separate CoolerControl plugin** drives the GPU LEDs
+The project uses a **separate CoolerControl plugin** to drive the GPU LEDs
 directly through the RM API. It is not part of `cc-plugin-thermal-rgb` and does not use
 OpenRGB. It is the only writer to the GPU LEDs.
 

@@ -4,7 +4,7 @@
 Summary: [docs/research-report.md](docs/research-report.md) · step log:
 [docs/probe-log.md](docs/probe-log.md) · plan: [docs/PLAN.md](docs/PLAN.md).
 
-Control the LEDs of the owner's **ZOTAC GeForce RTX 5080** from Linux, so the card
+Control the LEDs of a **ZOTAC GeForce RTX 5080** from Linux, so the card
 can join the temperature and game lighting.
 
 ## Hardware
@@ -16,7 +16,7 @@ assumptions are marked `⚠️ UNVERIFIED` / `⚠️ ASSUMPTION`.
 - NVIDIA I²C adapters `/dev/i2c-8` … `/dev/i2c-12`, named "NVIDIA i2c adapter 1, 3, 4, 5, 6
   at 1:00.0" (source: `/sys/class/i2c-dev/*/name`).
 - Retail model **RTX 5080 SOLID CORE OC**, SKU `ZT-B50800J2-10P`, "SPECTRA RGB lighting",
-  "ZOTAC GAMING FireStorm Utility" (source: owner; ZOTAC brochure, see
+  "ZOTAC GAMING FireStorm Utility" (source: ZOTAC brochure, see
   [docs/probe-log.md](docs/probe-log.md)).
 
 ## Findings so far
@@ -27,7 +27,7 @@ assumptions are marked `⚠️ UNVERIFIED` / `⚠️ ASSUMPTION`.
   `0x1762`), RTX 5090 SOLID OC (`0x1761`), RTX 5090 D SOLID OC (`0x2761`), all at I²C
   address `0x4B` (source: local OpenRGB clone, `ZotacBlackwellGPUControllerDetect.cpp`,
   `pci_ids.h`, `git log`).
-- The owner's card (subsystem `0x1765`) is not in that list. Its LED controller is a
+- The target card (subsystem `0x1765`) is not in that list. Its LED controller is a
   ZOTAC SPECTRA MCU at **0x4A on NVIDIA RM port 1**, ID **`N765E-1001`**, which only answers
   at **10 kHz**. Linux `/dev/i2c-*` NVIDIA adapters run at a fixed 100 kHz, so it is
   reached through `/dev/nvidiactl` instead (`tools/nvrm-i2c-probe`, read-only). A write
@@ -127,7 +127,8 @@ CoolerControl status, the NVIDIA device exposes `GPU Temp` and the AMD device ex
 | `docs/research-report.md` | consolidated findings, environment, sources, mistakes |
 | `docs/probe-log.md` | chronological log of every probe |
 | `tools/nvrm-i2c-probe/` | read-only 10 kHz identification probe (RM API) |
-| `tools/spectra-write-test/` | first write test: two fixed packets with read-back |
+| `tools/spectra-write-test/` | guarded controller status/write utility |
 | `tools/analysis/` | helpers used for FireStorm and ABI analysis (no hardware access) |
-| `scripts/probe-readonly.sh` | i2c-dev probe (100 kHz; cannot reach the controller) |
-| `THIRD_PARTY_NOTICES.md`, `licenses/` | third-party attributions and license texts |
+| `docs/DEPLOYMENT.md` | installation, upgrade, rollback, and runtime verification |
+| `docs/TESTING.md` | automated and hardware validation boundaries |
+| `THIRD_PARTY_NOTICES.md` | dependency and source attributions |
