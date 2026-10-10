@@ -20,10 +20,10 @@ make clean spectra-controller NVIDIA_SRC=/path/to/open-gpu-kernel-modules \
 ./spectra-controller 615.71.09 set static 255 0 0  # arbitrary RGB colour
 ```
 
-Same card, GPU-count, minor and strict driver-version checks as `nvrm-i2c-probe`. It writes
-only if the controller ID is `N765E-1001`. The `spectra-controller` target also accepts
-validated `static` or `breathe` RGB values for the CoolerControl plugin. The legacy test
-commands write two fixed packets:
+The utility validates the supported PCI identity, GPU count, device minor, and exact driver
+version before accessing the controller. It writes only if the controller ID is `N765E-1001`.
+The `spectra-controller` target accepts validated `static` or `breathe` RGB values for the
+CoolerControl plugin. The legacy test commands write two fixed packets:
 
 | Packet | Bytes 0–8 (bytes 9–31 are zero) |
 |---|---|
