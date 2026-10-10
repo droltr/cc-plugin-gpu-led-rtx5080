@@ -54,3 +54,11 @@ available before testing a new write.
 1. Rebuild the controller only after verifying the exact NVIDIA source checkout and headers.
 2. Perform controlled hardware checks for effect timing and brightness semantics.
 3. Develop and validate the settings page on its test branch.
+4. Run dedicated `gitleaks` and `trufflehog` scans if those tools become available; the current
+   environment does not contain either scanner.
+
+## Status recorded 2026-10-10
+
+The stable runtime, repository cleanup, technical documentation, local validation, and GitHub
+Actions CI are complete. The four items above remain open and are intentionally deferred until
+the next work session.
