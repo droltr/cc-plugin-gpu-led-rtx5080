@@ -1,99 +1,73 @@
 # cc-plugin-gpu-led-rtx5080
 
-**Status: LED control verified from Linux (first write test passed, 2026-10-10).**
-Summary: [docs/research-report.md](docs/research-report.md) · step log:
-[docs/probe-log.md](docs/probe-log.md) · plan: [docs/PLAN.md](docs/PLAN.md).
+CoolerControl integration for temperature-driven control of the ZOTAC SPECTRA LEDs on a
+ZOTAC GAMING GeForce RTX 5080 SOLID CORE OC. The production runtime reads the NVIDIA GPU
+temperature from CoolerControl, maps it to the thermal-rgb colour scale, and sends validated
+RGB packets to the GPU's SPECTRA controller through the NVIDIA Resource Manager interface.
 
-Control the LEDs of a **ZOTAC GeForce RTX 5080** from Linux, so the card
-can join the temperature and game lighting.
+## Problem
 
-## Hardware
+The target card exposes NVIDIA I²C adapters at 100 kHz, while its SPECTRA controller responds
+at 10 kHz. Direct access through the normal `/dev/i2c-*` adapters therefore failed. The controller
+was reachable through `/dev/nvidiactl`, using the NVIDIA RM I²C transaction path and the correct
+device identity checks.
 
-Unlabelled statements are verified and cite their source. Unverified statements and
-assumptions are marked `⚠️ UNVERIFIED` / `⚠️ ASSUMPTION`.
+The CoolerControl host also exposes an AMD integrated GPU. Selecting the first GPU would be
+unsafe because it could address the wrong device. The runtime selects the NVIDIA device by its
+configured model and requires the `GPU Temp` sensor; it does not fall back to the AMD device.
 
-- PCI `10de:2c02`, subsystem `19da:1765` (source: sysfs).
-- NVIDIA I²C adapters `/dev/i2c-8` … `/dev/i2c-12`, named "NVIDIA i2c adapter 1, 3, 4, 5, 6
-  at 1:00.0" (source: `/sys/class/i2c-dev/*/name`).
-- Retail model **RTX 5080 SOLID CORE OC**, SKU `ZT-B50800J2-10P`, "SPECTRA RGB lighting",
-  "ZOTAC GAMING FireStorm Utility" (source: ZOTAC brochure, see
-  [docs/probe-log.md](docs/probe-log.md)).
+## Verified environment
 
-## Findings so far
+These versions identify the environment in which the runtime and hardware checks were performed.
+They are recorded as test evidence, not as universal minimum versions.
 
-- OpenRGB tags `release_1.0` and `master` (2026-09-11) contain
-  `Controllers/ZotacBlackwellGPUController`, first committed 2026-04-09 by Eder Sánchez
-  (`b3a50d66`). Its detector is registered for: RTX 5080 AMP Extreme INFINITY (subsystem
-  `0x1762`), RTX 5090 SOLID OC (`0x1761`), RTX 5090 D SOLID OC (`0x2761`), all at I²C
-  address `0x4B` (source: local OpenRGB clone, `ZotacBlackwellGPUControllerDetect.cpp`,
-  `pci_ids.h`, `git log`).
-- The target card (subsystem `0x1765`) is not in that list. Its LED controller is a
-  ZOTAC SPECTRA MCU at **0x4A on NVIDIA RM port 1**, ID **`N765E-1001`**, which only answers
-  at **10 kHz**. Linux `/dev/i2c-*` NVIDIA adapters run at a fixed 100 kHz, so it is
-  reached through `/dev/nvidiactl` instead. The read-only probe that established this is
-  retained in the local research archive, outside the runtime repository. A write
-  test (`tools/spectra-write-test`) set steady blue and restored breathing green.
-  Source: probe on 2026-10-10; details in [docs/research-report.md](docs/research-report.md).
-- Tag `release_candidate_1.0rc2` has only `ZotacTuringGPUController` and
-  `ZotacV2GPUController`, no Blackwell controller (source: `git ls-tree`).
+| Component | Verified value | Evidence |
+|---|---|---|
+| Operating system | Bazzite 44.20261002.0, Kinoite, `bazzite-nvidia-open` | `/etc/os-release` |
+| Linux kernel | `7.2.8-ogc5.1.fc44.x86_64` | `uname -a` |
+| CPU | AMD Ryzen 7 9800X3D | `/proc/cpuinfo` |
+| Motherboard | MSI MAG B850 TOMAHAWK MAX WIFI, MS-7E62, BIOS 2.A64 | DMI data |
+| Discrete GPU | NVIDIA GeForce RTX 5080, GB203, PCI `10de:2c02` | PCI/sysfs and `nvidia-smi -q` |
+| GPU board | ZOTAC GAMING GeForce RTX 5080 SOLID CORE OC, SKU `ZT-B50800J2-10P` | ZOTAC brochure |
+| GPU subsystem | `19da:1765` | PCI/sysfs |
+| NVIDIA driver | Open kernel module `615.71.09` | `/proc/driver/nvidia/version` |
+| CoolerControl | `5.0.1` | `coolercontrol --version` and `coolercontrold --version` |
+| Python | `3.14.7` | `python3 --version` |
+| OpenRGB used for protocol research | Flatpak `org.openrgb.OpenRGB` `1.0` | Flatpak package information |
 
-## Initial CoolerControl plugin
+The board's SPECTRA controller was identified as MCU `N765E-1001` at I²C address `0x4A` on
+NVIDIA RM port 1. The controller accepts the validated 10 kHz transaction path. The underlying
+probe and reverse-engineering helpers are retained in the local ignored archive; the published
+repository contains the resulting technical evidence and the guarded controller source.
 
-The stable runtime is the `gpu_led` package without the optional settings page. It reads the
-GPU temperature from CoolerControl, uses the same colour sequence as `cc-plugin-thermal-rgb`,
-and invokes the RM-backed controller only when the colour changes. Static LED output is enabled
-in the checked-in `config.json`.
+## Technical solution
 
-The checked-in `brightness_pct` is `75`. For this exact 0x4A controller, the
-available Linux protocol evidence does not establish a hardware brightness field
-for Static mode: OpenRGB maps the timing byte to brightness only for Wink/Random,
-while Static uses the byte as its fixed timing value. The plugin therefore limits
-the RGB command channels to 75% while preserving continuous Static output. This is
-a software output-level limit, not a claim that the LED current or electrical power
-is exactly 75%.
+1. Read-only probing established that the normal NVIDIA i2c-dev adapters use 100 kHz and cannot
+   reach the target controller.
+2. NVIDIA RM transactions through `/dev/nvidiactl` reached the controller at 10 kHz and returned
+   the expected controller ID and status bytes.
+3. The guarded C controller validates PCI identity, GPU count, device minor, driver version,
+   controller ID, and packet mode before a write.
+4. A known static-blue packet was written and read back, then the previously verified
+   breathing-green packet restored the LED state.
+5. The Python runtime reads the NVIDIA `GPU Temp` sensor from CoolerControl, applies the
+   temperature colour scale at 40/56/72/88 °C, smooths samples with a 3-second EMA, and writes
+   only meaningful RGB changes.
+6. The configured 75% value is a software RGB command limit. The available protocol evidence
+   does not prove that it represents 75% electrical LED current or optical brightness.
 
-### Experimental effect settings
+The production configuration uses static LED output continuously and temperature-derived RGB
+values. The settings UI remains an experimental branch and is excluded from the production
+runtime and acceptance criteria because its save path has not been verified.
 
-The following ranges are documented for the experimental UI on `test/ui-settings`. They are not
-available in the production runtime on `main`, and their save path is not accepted:
+## Build and install
 
-| Effect | Mode | Colour source | Speed | Hardware effect brightness |
-|---|---:|---|---:|---:|
-| Breathe | 1 | selected / temperature | 0–255 | not exposed |
-| Wink | 3 | selected / temperature | 0–255 | 0–255 |
-| Static | 0 | selected / temperature | none | not exposed |
-| Fade | 2 | controller colour cycle | 0–255 | not exposed |
-| Spectrum breathe | 4 | controller colour cycle | 0–255 | not exposed |
-| Random | 5 | controller random effect | 0–255 | 0–255 |
+The Python runtime uses only the Python standard library. `requirements.txt` is intentionally
+comment-only and documents that no third-party Python package is required.
 
-The separate software brightness control is `0–100%` and scales the RGB command.
-The ranges and mode capabilities follow the OpenRGB 0x4A driver analysis; the
-controller does not expose millisecond durations or a measured optical brightness
-percentage. The UI's random source uses host-generated colours for colour-capable
-modes and the controller's own random/cycle effect for the other modes.
-
-The settings page is experimental and remains on the `test/ui-settings` branch. Its save path
-has not been verified and it is not part of the production runtime acceptance criteria. The stable
-runtime and its settings contract are kept separate: `gpu_led/` contains the temperature and
-LED controller path, `config.json` and `gpu_led/config.py` contain configuration parsing, and
-`ui/index.html` is the deferred test interface.
-
-The GPU stop positions are `40/56/72/88 °C`. NVIDIA lists `88 °C` as the RTX 5080's
-maximum GPU temperature; 40 °C is the practical lower endpoint used for the colour
-scale, based on NVIDIA's typical cool/idle GPU range. Sources: [NVIDIA RTX 5080
-specifications](https://www.nvidia.com/en-us/geforce/graphics-cards/50-series/rtx-5080/)
-and [NVIDIA temperature guidance](https://nvidia.custhelp.com/app/answers/detail/a_id/2343/).
-Temperature samples use a 3-second EMA and the controller is updated only after a
-meaningful two-channel RGB change, matching the thermal-rgb update behavior.
-
-Build the controller against the exact installed NVIDIA driver headers:
-
-```sh
-make -C tools/spectra-write-test NVIDIA_SRC=/path/to/open-gpu-kernel-modules spectra-controller
-```
-
-The reproducible build must pass the exact NVIDIA source commit and driver version so the binary
-contains verifiable build metadata:
+The controller must be built against the exact NVIDIA `open-gpu-kernel-modules` checkout matching
+the installed driver. The verified source tag is `615.71.09`, commit
+`61dcc93722ecb418bb5f2e00923f05b4b8051dd1`.
 
 ```sh
 make -C tools/spectra-write-test clean spectra-controller \
@@ -103,43 +77,39 @@ make -C tools/spectra-write-test clean spectra-controller \
 ./tools/spectra-write-test/spectra-controller --build-info
 ```
 
-The controller source is `tools/spectra-write-test/spectra-write-test.c`. Its headers come from
-NVIDIA's official `open-gpu-kernel-modules` source, recorded for the installed 615.71.09 driver
-as tag `615.71.09`, commit `61dcc93`, in `docs/research-report.md`. The binary uses NVIDIA RM
-ioctl structures and flags, so the exact header/driver pair matters. A rebuild is required when
-the C controller source changes or the installed driver ABI/header revision changes; a
-configuration-only change or a Python runtime refactor does not by itself require a rebuild.
-Before any rebuild, verify the checkout, tag/commit, compiler, generated binary, strict driver
-version check, and read-only controller status path. A wrong header/ABI combination could make
-the controller fail or send an unintended RM transaction, so no rebuilt binary is accepted from
-an unverified source tree.
-
-The plugin launcher expects that binary as `spectra-controller` beside `run.sh`, with
-`driver_version` set to the installed driver version before enabling writes.
-
-Install the complete plugin with the matching header checkout:
+On Bazzite, install and restart CoolerControl with `run0`:
 
 ```sh
 run0 env SPECTRA_NVIDIA_SRC=/path/to/open-gpu-kernel-modules bash install.sh
 run0 systemctl restart coolercontrold
 ```
 
-The stable install omits the deferred settings page. The experimental UI branch can include it
-only when explicitly requested with `INSTALL_UI=1`; that branch is not a stable acceptance
-target.
+The installer verifies the controller hash and embedded build metadata, stages the complete
+plugin, and retains the previous deployment in a timestamped backup. Do not delete a backup
+until deployment files, service state, logs, and controlled hardware behavior have been checked.
 
-The plugin selects the GPU by the configured `gpu_name` (`NVIDIA GeForce RTX 5080`),
-and requires the selected device to expose the `GPU Temp` sensor. On the current
-CoolerControl status, the NVIDIA device exposes `GPU Temp` and the AMD device exposes
-`temp1`, so the AMD GPU is ignored.
+## Validation
 
-## Repository layout
+Run the repository checks with:
 
-| Path | Content |
-|---|---|
-| `docs/research-report.md` | consolidated findings, environment, sources, mistakes |
-| `docs/probe-log.md` | chronological log of every probe |
-| `tools/spectra-write-test/` | guarded controller status/write utility |
-| `docs/DEPLOYMENT.md` | installation, upgrade, rollback, and runtime verification |
-| `docs/TESTING.md` | automated and hardware validation boundaries |
-| `THIRD_PARTY_NOTICES.md` | dependency and source attributions |
+```sh
+python3 -m unittest discover -s tests -v
+python3 -m compileall -q gpu_led tests
+python3 -m json.tool config.json >/dev/null
+bash -n install.sh run.sh
+git diff --check
+```
+
+The verified test suite contains 8 standard-library tests covering configuration parsing, colour
+conversion, brightness limits, GPU selection, AMD exclusion, and error handling. Automated tests
+do not access `/dev/nvidiactl` or write to physical LEDs. Hardware validation requires the
+read-only status path, strict identity checks, read-back, and the known restore packet.
+
+## Documentation
+
+- [Research report](docs/research-report.md): hardware, protocol, source versions, and evidence.
+- [Probe log](docs/probe-log.md): chronological technical observations and write validation.
+- [Deployment guide](docs/DEPLOYMENT.md): Bazzite installation, provenance, rollback, and logs.
+- [Testing guide](docs/TESTING.md): automated and hardware validation boundaries.
+- [Project plan](docs/PLAN.md): accepted scope and remaining validation work.
+- [Third-party notices](THIRD_PARTY_NOTICES.md): NVIDIA and OpenRGB source attribution.

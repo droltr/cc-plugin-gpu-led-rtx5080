@@ -1,1 +1,2 @@
-# The plugin uses only the Python standard library.
+# Intentionally comment-only: the plugin uses only the Python standard library.
+# Runtime requirement: Python >= 3.10, as declared in pyproject.toml.

@@ -7,27 +7,44 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
-- Initial `gpu-led-rtx5080` CoolerControl integration: GPU temperature colour mapping and a
-  stable static-output runtime. The deferred settings UI remains experimental.
-- `spectra-controller` build target for validated arbitrary RGB packets through the
-  already verified NVIDIA RM/SPECTRA path.
-- Accepted mode packet values 2–5 with read-back; the controller accepted them, but their
-  human-visible effect names and timing/brightness semantics remain separately unverified.
-- GPU plugin defaults now use the GPU temperature and the thermal-rgb colours remapped to
-  40/56/72/88 °C, with static LED output enabled.
-- First live plugin update selected the NVIDIA `GPU Temp` sensor at 50.0 °C and wrote
-  static RGB `00 D3 77`; RM status read-back matched.
-- Added thermal-rgb-style EMA smoothing and a two-channel RGB change threshold to avoid
-  abrupt colour jumps and redundant static controller writes.
-- Project plan and technical validation records (`docs/PLAN.md`, `docs/TESTING.md`,
-  `docs/DEPLOYMENT.md`).
-- Historical read-only RM API probing at 10 kHz identified the LED
-  controller `N765E-1001` at 0x4A on RM port 1.
-- `tools/spectra-write-test`: first LED write test with two fixed packets (static
-  blue, restore to breathing green) and read-back; verified on hardware.
-- Historical FireStorm call-site, NvAPI layout, and RM ABI analysis results are retained in the
-  research documentation; the source helpers are kept in the local archive.
-- `docs/research-report.md`, `docs/probe-log.md`, and `THIRD_PARTY_NOTICES.md`.
+
+- Production CoolerControl integration `gpu-led-rtx5080` for the ZOTAC GAMING GeForce RTX
+  5080 SOLID CORE OC (`ZT-B50800J2-10P`).
+- NVIDIA RM controller path for the SPECTRA MCU `N765E-1001` at I²C address `0x4A`, RM port 1,
+  and 10 kHz.
+- GPU temperature selection that requires the NVIDIA `GPU Temp` sensor and excludes the AMD
+  integrated GPU exposed by the same CoolerControl host.
+- Thermal colour mapping at 40/56/72/88 °C, 3-second EMA smoothing, meaningful RGB-change
+  filtering, and a 75% software RGB command limit.
+- Guarded `spectra-controller` build target with embedded NVIDIA source commit and driver
+  metadata, strict device checks, status read-back, and a known restore packet.
+- Bazzite `run0` deployment flow with SHA-256 verification, timestamped rollback backups, and
+  deployment provenance records.
+- Standard-library automated tests, GitHub Actions CI, and technical deployment/research
+  documentation.
+
+### Changed
+
+- Renamed the GitHub repository to `cc-plugin-gpu-led-rtx5080` and updated the manifest URL,
+  README, and repository metadata.
+- Replaced exploratory README wording with a problem, evidence, implementation, validation, and
+  deployment description using the verified Bazzite, Linux, Python, CoolerControl, NVIDIA driver,
+  CPU, motherboard, GPU, and board identifiers.
+- Kept temporary protocol-analysis helpers, session-only records, and agent-only guidance in the
+  local ignored archive instead of publishing them as runtime project files.
 
 ### Removed
-- Obsolete references to the removed i2c-dev shell probe and an untracked license directory.
+
+- Temporary read-only probe sources and reverse-engineering helper sources from the published
+  repository after preserving them in the local archive.
+- Session records and workspace agent instructions from the public technical documentation.
+
+### Validation status
+
+- Verified environment: Bazzite 44.20261002.0, kernel `7.2.8-ogc5.1.fc44.x86_64`, Python 3.14.7,
+  CoolerControl 5.0.1, and NVIDIA driver 615.71.09.
+- Local automated checks: 8 tests passed; Python compilation, JSON validation, shell syntax, and
+  whitespace checks passed.
+- GitHub Actions CI passed for the published `main` commit.
+- Experimental effect-settings UI remains outside the production acceptance target because its
+  save path has not been verified.
