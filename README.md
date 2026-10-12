@@ -109,22 +109,24 @@ read-only status path, strict identity checks, read-back, and the known restore 
 
 ### In-game FPS drops while LEDs update
 
-The reporter observed periodic FPS drops in Counter-Strike 2 on an RTX 5080 (driver
-615.71.09) while the plugin was running. The drops appeared when the plugin was enabled and
-went away when it was stopped (direct in-game observation, repeated A/B; no frame-time log
-yet). Tracked in issue #4.
+**Impact: high while gaming.** Running the plugin causes periodic FPS drops in Counter-Strike 2
+on an RTX 5080 (driver 615.71.09), reported as about 599 -> 400 fps. Tracked in
+[issue #4](https://github.com/droltr/cc-plugin-gpu-led-rtx5080/issues/4).
 
-- Verified: each `spectra-controller set` call performs 3 I²C transactions of 32 bytes at
-  10 kHz, and each transaction blocks other NVIDIA RM calls for about 32 ms (measured with
-  a probe loop and a negative control; see [issue #4](https://github.com/droltr/cc-plugin-gpu-led-rtx5080/issues/4)).
+- Verified (source: the reporter's in-game observation, repeated A/B): the drops start when the
+  plugin is enabled and stop when it is disabled. The plugin is the cause of the drops.
+- Verified (source: measurement with a probe loop and a negative control, see issue #4): each
+  `spectra-controller set` call performs 3 I²C transactions of 32 bytes at 10 kHz, and each
+  transaction blocks other NVIDIA RM calls for about 32 ms.
 
-> **⚠️ UNVERIFIED:** That this ~32 ms block is what lowers the in-game frame rate.
+> **⚠️ UNVERIFIED:** That the ~32 ms RM block is the mechanism behind the drops. The cause
+> (the plugin) is verified; the mechanism is not.
 > To verify: record frame times (for example MangoHud with `log_interval=0`) with the plugin
 > running and stopped, and align the spikes with the `spectra-controller` start timestamps.
 
-Workaround until a fix lands: stop the plugin while gaming. No fix is implemented yet; the
-planned direction is to send no I²C traffic while a game is rendering and to reduce the
-number of transactions per colour change.
+Workaround (verified: disabling the plugin removes the drops): disable the plugin while gaming.
+No fix is implemented yet; the planned direction is to send no I²C traffic while a game is
+rendering and to reduce the number of transactions per colour change.
 
 ## Documentation
 
