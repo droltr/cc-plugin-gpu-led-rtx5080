@@ -132,5 +132,6 @@ number of transactions per colour change.
 - [Probe log](docs/probe-log.md): chronological technical observations and write validation.
 - [Deployment guide](docs/DEPLOYMENT.md): Bazzite installation, provenance, rollback, and logs.
 - [Testing guide](docs/TESTING.md): automated and hardware validation boundaries.
+- [FPS drop test protocol](docs/FPS-DROP-TESTING.md): how to reproduce, test and report the in-game FPS drops.
 - [Project plan](docs/PLAN.md): accepted scope and remaining validation work.
 - [Third-party notices](THIRD_PARTY_NOTICES.md): NVIDIA and OpenRGB source attribution.
