@@ -8,8 +8,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Known issues
 
-- In-game FPS drops reported while LED updates run (issue #4). Cause not yet confirmed by a
-  frame-time log; stopping the plugin removes the drops.
+- In-game FPS drops while the plugin runs (issue #4), impact high while gaming. Verified by the
+  reporter's in-game A/B: enabling the plugin causes the drops, disabling it removes them. The
+  internal mechanism is not yet measured by a frame-time log.
 
 ### Added
 
