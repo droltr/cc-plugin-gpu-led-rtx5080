@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Known issues
+
+- In-game FPS drops reported while LED updates run (issue #4). Cause not yet confirmed by a
+  frame-time log; stopping the plugin removes the drops.
+
 ### Added
 
 - Production CoolerControl integration `gpu-led-rtx5080` for the ZOTAC GAMING GeForce RTX
