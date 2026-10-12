@@ -105,6 +105,27 @@ conversion, brightness limits, GPU selection, AMD exclusion, and error handling.
 do not access `/dev/nvidiactl` or write to physical LEDs. Hardware validation requires the
 read-only status path, strict identity checks, read-back, and the known restore packet.
 
+## Known issues
+
+### In-game FPS drops while LEDs update
+
+The reporter observed periodic FPS drops in Counter-Strike 2 on an RTX 5080 (driver
+615.71.09) while the plugin was running. The drops appeared when the plugin was enabled and
+went away when it was stopped (direct in-game observation, repeated A/B; no frame-time log
+yet). Tracked in issue #4.
+
+- Verified: each `spectra-controller set` call performs 3 I²C transactions of 32 bytes at
+  10 kHz, and each transaction blocks other NVIDIA RM calls for about 32 ms (measured with
+  a probe loop and a negative control; see [issue #4](https://github.com/droltr/cc-plugin-gpu-led-rtx5080/issues/4)).
+
+> **⚠️ UNVERIFIED:** That this ~32 ms block is what lowers the in-game frame rate.
+> To verify: record frame times (for example MangoHud with `log_interval=0`) with the plugin
+> running and stopped, and align the spikes with the `spectra-controller` start timestamps.
+
+Workaround until a fix lands: stop the plugin while gaming. No fix is implemented yet; the
+planned direction is to send no I²C traffic while a game is rendering and to reduce the
+number of transactions per colour change.
+
 ## Documentation
 
 - [Research report](docs/research-report.md): hardware, protocol, source versions, and evidence.
